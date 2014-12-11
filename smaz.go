@@ -43,27 +43,29 @@ func init() {
 	}
 }
 
-func flushVerb(outBuf, verbBuf *bytes.Buffer) {
+func flushVerb(dst *[]byte, verbBuf *bytes.Buffer) {
+	d := *dst
 	// We can write a max of 255 continuous verbatim characters, because the length of the continous verbatim
 	// section is represented by a single byte.
 	for verbBuf.Len() > 0 {
 		chunk := verbBuf.Next(255)
 		if len(chunk) == 1 {
 			// 254 is code for a single verbatim byte
-			outBuf.WriteByte(byte(254))
+			d = append(d, byte(254))
 		} else {
 			// 255 is code for a verbatim string. It is followed by a byte containing the length of the string.
-			outBuf.WriteByte(byte(255))
-			outBuf.WriteByte(byte(len(chunk)))
+			d = append(d, byte(255))
+			d = append(d, byte(len(chunk)))
 		}
-		outBuf.Write(chunk)
+		d = append(d, chunk...)
 	}
 	verbBuf.Reset()
+	*dst = d
 }
 
 // Compress compresses a byte slice and returns the compressed data.
-func Compress(input []byte) []byte {
-	var outBuf bytes.Buffer
+func Compress(dst, input []byte) []byte {
+	dst = dst[0:0]
 	var verbBuf bytes.Buffer
 	root := codeTrie.Root()
 
@@ -85,16 +87,15 @@ func Compress(input []byte) []byte {
 
 		if prefixLen > 0 {
 			input = input[prefixLen:]
-			flushVerb(&outBuf, &verbBuf)
-			outBuf.WriteByte(byte(code))
+			flushVerb(&dst, &verbBuf)
+			dst = append(dst, byte(code))
 		} else {
 			verbBuf.WriteByte(input[0])
 			input = input[1:]
 		}
 	}
-	flushVerb(&outBuf, &verbBuf)
-
-	return outBuf.Bytes()
+	flushVerb(&dst, &verbBuf)
+	return dst
 }
 
 // ErrDecompression is returned when decompressing invalid smaz-encoded data.
