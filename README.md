@@ -39,7 +39,7 @@ library should be decompressible by `smaz.Decompress`.
 [Salvatore Sanfilippo](https://github.com/antirez) designed smaz and wrote
 [C implementation]](https://github.com/antirez/smaz).
 
-[Caleb Sparece](https://github.com/cespare) wrote initial
+[Caleb Spare](https://github.com/cespare) wrote initial
 [Go port](https://github.com/cespare/go-smaz).
 
 [Krzysztof Kowalczyk](http://blog.kowalczyk.info) improved speed of
