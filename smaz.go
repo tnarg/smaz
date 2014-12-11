@@ -42,29 +42,26 @@ func init() {
 	}
 }
 
-func next(d []byte, n int) ([]byte, []byte) {
-	if len(d) < n {
-		return d, nil
-	}
-	return d[:n], d[n:]
-}
-
 func appendSrc(dst, src []byte) []byte {
 	// We can write a max of 255 continuous verbatim characters, because the
 	// length of the continous verbatim section is represented by a single byte.
 	for len(src) > 0 {
-		chunk, src = next(src, 255)
-		if len(chunk) == 1 {
+		left := len(src)
+		if left == 1 {
 			// 254 is code for a single verbatim byte
 			dst = append(dst, byte(254))
-			dst = append(dst, chunk[0])
-		} else {
-			// 255 is code for a verbatim string. It is followed by a byte
-			// containing the length of the string.
-			dst = append(dst, byte(255))
-			dst = append(dst, byte(len(chunk)))
-			dst = append(dst, chunk...)
+			return append(dst, src[0])
 		}
+		toCopy := left
+		if left > 255 {
+			toCopy = 255
+		}
+		// 255 is code for a verbatim string. It is followed by a byte
+		// containing the length of the string.
+		dst = append(dst, byte(255))
+		dst = append(dst, byte(toCopy))
+		dst = append(dst, src[:toCopy]...)
+		src = src[toCopy:]
 	}
 	return dst
 }
