@@ -4,10 +4,9 @@ package trie
 
 // A Node represents a logical vertex in the trie structure.
 type Node struct {
-	branches    [256]*Node
-	val         int
-	terminal    bool
-	hasChildren bool
+	branches [256]*Node
+	val      int
+	terminal bool
 }
 
 // A Trie is a a prefix tree.
@@ -31,7 +30,6 @@ func (t *Trie) Put(k []byte, v int) bool {
 		if next == nil {
 			next = &Node{}
 			n.branches[c] = next
-			n.hasChildren = true
 		}
 		n = next
 	}
@@ -73,11 +71,6 @@ func (n *Node) Walk(c byte) *Node {
 // represents an element in the set). For instance, if the root node is terminal, then []byte{} is in the
 // trie.
 func (n *Node) Terminal() bool { return n.terminal }
-
-// Leaf indicates whether n is a leaf node in the trie (that is, whether it has children). A leaf node must be
-// terminal (else it would not exist). Logically, if n is a leaf node then the []byte represented by the path
-// from the root to n is not a proper prefix of any element of the trie.
-func (n *Node) Leaf() bool { return !n.hasChildren }
 
 // Val gives the value associated with this node. It panics if n is not terminal.
 func (n *Node) Val() int {
