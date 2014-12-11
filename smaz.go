@@ -70,7 +70,7 @@ func flushVerb(d, verbBuf []byte) ([]byte, []byte) {
 }
 
 func Encode(dst, src []byte) []byte {
-	dst = dst[0:0]
+	dst = dst[:0]
 	var verbBuf []byte
 	root := codeTrie.Root()
 
@@ -106,8 +106,9 @@ func Encode(dst, src []byte) []byte {
 // ErrDecompression is returned when decompressing invalid smaz-encoded data.
 var ErrDecompression = errors.New("Invalid or corrupted compressed data.")
 
-func Decode(src []byte) ([]byte, error) {
-	dst := make([]byte, 0, len(src)) // Estimate initial size
+func Decode(dst, src []byte) ([]byte, error) {
+	dst = dst[:0]
+	//dst := make([]byte, 0, len(src)) // Estimate initial size
 	for len(src) > 0 {
 		n := int(src[0])
 		switch n {
