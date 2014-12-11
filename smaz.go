@@ -82,8 +82,8 @@ func Encode(dst, src []byte) []byte {
 		code := 0
 		node := root
 		for i, c := range src {
-			next, ok := node.Walk(c)
-			if !ok {
+			next := node.Walk(c)
+			if next == nil {
 				break
 			}
 			node = next

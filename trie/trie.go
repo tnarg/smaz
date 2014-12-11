@@ -5,11 +5,10 @@ package trie
 // A Node represents a logical vertex in the trie structure.
 type Node struct {
 	branches    [256]*Node
-	val int
+	val         int
 	terminal    bool
 	hasChildren bool
 }
-
 
 // A Trie is a a prefix tree.
 type Trie struct {
@@ -28,8 +27,8 @@ func New() *Trie {
 func (t *Trie) Put(k []byte, v int) bool {
 	n := t.root
 	for _, c := range k {
-		next, ok := n.Walk(c)
-		if !ok {
+		next := n.Walk(c)
+		if next == nil {
 			next = &Node{}
 			n.branches[c] = next
 			n.hasChildren = true
@@ -48,8 +47,8 @@ func (t *Trie) Put(k []byte, v int) bool {
 func (t *Trie) Get(k []byte) (v int, ok bool) {
 	n := t.root
 	for _, c := range k {
-		next, ok := n.Walk(c)
-		if !ok {
+		next := n.Walk(c)
+		if next == nil {
 			return 0, false
 		}
 		n = next
@@ -64,11 +63,10 @@ func (t *Trie) Get(k []byte) (v int, ok bool) {
 // node.
 func (t *Trie) Root() *Node { return t.root }
 
-// Walk returns the node reached along edge c, if one exists. The ok value indicates whether such a node
-// exists.
-func (n *Node) Walk(c byte) (next *Node, ok bool) {
-	next = n.branches[int(c)]
-	return next, (next != nil)
+// Walk returns the node reached along edge c, if one exists. If node doesn't
+// exist we return nil
+func (n *Node) Walk(c byte) *Node {
+	return n.branches[int(c)]
 }
 
 // Terminal indicates whether n is terminal in the trie (that is, whether the path from the root to n
