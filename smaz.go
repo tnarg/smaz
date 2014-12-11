@@ -1,12 +1,12 @@
-// Package smaz is an implementation of the smaz library (https://github.com/antirez/smaz) for compressing
-// small strings.
+// Package smaz is an implementation of the smaz library
+// (https://github.com/antirez/smaz) for compressing small strings.
 package smaz
 
 import (
 	"bytes"
 	"errors"
 
-	"github.com/kjk/go-smaz/trie"
+	"github.com/kjk/smaz/trie"
 )
 
 var codeStrings = []string{" ",
@@ -45,15 +45,16 @@ func init() {
 
 func flushVerb(dst *[]byte, verbBuf *bytes.Buffer) {
 	d := *dst
-	// We can write a max of 255 continuous verbatim characters, because the length of the continous verbatim
-	// section is represented by a single byte.
+	// We can write a max of 255 continuous verbatim characters, because the
+	// length of the continous verbatim section is represented by a single byte.
 	for verbBuf.Len() > 0 {
 		chunk := verbBuf.Next(255)
 		if len(chunk) == 1 {
 			// 254 is code for a single verbatim byte
 			d = append(d, byte(254))
 		} else {
-			// 255 is code for a verbatim string. It is followed by a byte containing the length of the string.
+			// 255 is code for a verbatim string. It is followed by a byte
+			// containing the length of the string.
 			d = append(d, byte(255))
 			d = append(d, byte(len(chunk)))
 		}
@@ -101,8 +102,9 @@ func Compress(dst, input []byte) []byte {
 // ErrDecompression is returned when decompressing invalid smaz-encoded data.
 var ErrDecompression = errors.New("Invalid or corrupted compressed data.")
 
-// Decompress decompresses a smaz-compressed byte slice and return a new slice with the decompressed data. err
-// is nil if and only if decompression fails for any reason (e.g., corrupted data).
+// Decompress decompresses a smaz-compressed byte slice and return a new slice
+// with the decompressed data. err is nil if and only if decompression fails
+// for any reason (e.g., corrupted data).
 func Decompress(compressed []byte) ([]byte, error) {
 	decompressed := make([]byte, 0, len(compressed)) // Estimate initial size
 	for len(compressed) > 0 {
