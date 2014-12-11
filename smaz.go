@@ -3,7 +3,6 @@
 package smaz
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/kjk/smaz/trie"
@@ -43,12 +42,19 @@ func init() {
 	}
 }
 
-func flushVerb(dst *[]byte, verbBuf *bytes.Buffer) {
-	d := *dst
+func next(d []byte, n int) ([]byte, []byte) {
+	if n >= len(d) {
+		return d, nil
+	}
+	return d[:n], d[n:]
+}
+
+func flushVerb(d, verbBuf []byte) ([]byte, []byte) {
+	var chunk []byte
 	// We can write a max of 255 continuous verbatim characters, because the
 	// length of the continous verbatim section is represented by a single byte.
-	for verbBuf.Len() > 0 {
-		chunk := verbBuf.Next(255)
+	for len(verbBuf) > 0 {
+		chunk, verbBuf = next(verbBuf, 255)
 		if len(chunk) == 1 {
 			// 254 is code for a single verbatim byte
 			d = append(d, byte(254))
@@ -60,14 +66,13 @@ func flushVerb(dst *[]byte, verbBuf *bytes.Buffer) {
 		}
 		d = append(d, chunk...)
 	}
-	verbBuf.Reset()
-	*dst = d
+	return d, verbBuf[0:0]
 }
 
 // Compress compresses a byte slice and returns the compressed data.
 func Compress(dst, input []byte) []byte {
 	dst = dst[0:0]
-	var verbBuf bytes.Buffer
+	var verbBuf []byte
 	root := codeTrie.Root()
 
 	for len(input) > 0 {
@@ -88,14 +93,14 @@ func Compress(dst, input []byte) []byte {
 
 		if prefixLen > 0 {
 			input = input[prefixLen:]
-			flushVerb(&dst, &verbBuf)
+			dst, verbBuf = flushVerb(dst, verbBuf)
 			dst = append(dst, byte(code))
 		} else {
-			verbBuf.WriteByte(input[0])
+			verbBuf = append(verbBuf, input[0])
 			input = input[1:]
 		}
 	}
-	flushVerb(&dst, &verbBuf)
+	dst, _ = flushVerb(dst, verbBuf)
 	return dst
 }
 
