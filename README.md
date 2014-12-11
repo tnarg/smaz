@@ -1,6 +1,6 @@
 This is a pure Go implementation of [antirez's](https://github.com/antirez)
 [SMAZ](https://github.com/antirez/smaz), a library for compressing short,
-English strings.
+English strings (it won't work well for other languages).
 
 ## Installation
 
