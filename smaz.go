@@ -69,17 +69,16 @@ func flushVerb(d, verbBuf []byte) ([]byte, []byte) {
 	return d, verbBuf[0:0]
 }
 
-// Compress compresses a byte slice and returns the compressed data.
-func Compress(dst, input []byte) []byte {
+func Encode(dst, src []byte) []byte {
 	dst = dst[0:0]
 	var verbBuf []byte
 	root := codeTrie.Root()
 
-	for len(input) > 0 {
+	for len(src) > 0 {
 		prefixLen := 0
 		code := 0
 		node := root
-		for i, c := range input {
+		for i, c := range src {
 			next, ok := node.Walk(c)
 			if !ok {
 				break
@@ -92,12 +91,12 @@ func Compress(dst, input []byte) []byte {
 		}
 
 		if prefixLen > 0 {
-			input = input[prefixLen:]
+			src = src[prefixLen:]
 			dst, verbBuf = flushVerb(dst, verbBuf)
 			dst = append(dst, byte(code))
 		} else {
-			verbBuf = append(verbBuf, input[0])
-			input = input[1:]
+			verbBuf = append(verbBuf, src[0])
+			src = src[1:]
 		}
 	}
 	dst, _ = flushVerb(dst, verbBuf)
@@ -107,36 +106,33 @@ func Compress(dst, input []byte) []byte {
 // ErrDecompression is returned when decompressing invalid smaz-encoded data.
 var ErrDecompression = errors.New("Invalid or corrupted compressed data.")
 
-// Decompress decompresses a smaz-compressed byte slice and return a new slice
-// with the decompressed data. err is nil if and only if decompression fails
-// for any reason (e.g., corrupted data).
-func Decompress(compressed []byte) ([]byte, error) {
-	decompressed := make([]byte, 0, len(compressed)) // Estimate initial size
-	for len(compressed) > 0 {
-		n := int(compressed[0])
+func Decode(src []byte) ([]byte, error) {
+	dst := make([]byte, 0, len(src)) // Estimate initial size
+	for len(src) > 0 {
+		n := int(src[0])
 		switch n {
 		case 254: // Verbatim byte
-			if len(compressed) < 2 {
+			if len(src) < 2 {
 				return nil, ErrDecompression
 			}
-			decompressed = append(decompressed, compressed[1])
-			compressed = compressed[2:]
+			dst = append(dst, src[1])
+			src = src[2:]
 		case 255: // Verbatim string
-			if len(compressed) < 2 {
+			if len(src) < 2 {
 				return nil, ErrDecompression
 			}
-			n = int(compressed[1])
-			if len(compressed) < n+2 {
+			n = int(src[1])
+			if len(src) < n+2 {
 				return nil, ErrDecompression
 			}
-			decompressed = append(decompressed, compressed[2:n+2]...)
-			compressed = compressed[n+2:]
+			dst = append(dst, src[2:n+2]...)
+			src = src[n+2:]
 		default: // Look up encoded value
 			d := codes[n]
-			decompressed = append(decompressed, d...)
-			compressed = compressed[1:]
+			dst = append(dst, d...)
+			src = src[1:]
 		}
 	}
 
-	return decompressed, nil
+	return dst, nil
 }
