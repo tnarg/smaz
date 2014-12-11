@@ -29,7 +29,7 @@ var antirezTestStrings = []string{"",
 
 func TestCorrectness(t *testing.T) {
 	// Set up our slice of test strings.
-	var inputs [][]byte
+	inputs := make([][]byte, 0)
 	for _, s := range antirezTestStrings {
 		inputs = append(inputs, []byte(s))
 	}
@@ -47,9 +47,8 @@ func TestCorrectness(t *testing.T) {
 	}
 	inputs = append(inputs, allZeroes)
 
-	compressed := make([]byte, 0, 1024)
 	for _, input := range inputs {
-		compressed = Encode(compressed, input)
+		compressed := Encode(nil, input)
 		decompressed, err := Decode(nil, compressed)
 		if err != nil {
 			t.Fatal(err)
@@ -104,19 +103,20 @@ func BenchmarkDecompression(b *testing.B) {
 	inputs, _ := loadTestData(b)
 	compressedStrings := make([][]byte, len(inputs))
 	var n int64
-	var compressed []byte
 	for i, input := range inputs {
-		compressed = Encode(compressed, input)
+		compressed := Encode(nil, input)
 		compressedStrings[i] = compressed
 		n += int64(len(compressed))
 	}
 	b.SetBytes(n)
 	b.StartTimer()
+	var dst []byte
+	var err error
 	for i := 0; i < b.N; i++ {
 		for _, compressed := range compressedStrings {
-			_, err := Decode(nil, compressed)
+			dst, err = Decode(dst, compressed)
 			if err != nil {
-				b.Fatalf("Decode() failed with %s\n", err)
+				b.Fatalf("Decompress failed with %s", err)
 			}
 		}
 	}

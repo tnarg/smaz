@@ -17,15 +17,15 @@ import (
 
 func main() {
   s := "Now is the time for all good men to come to the aid of the party."
-  compressed := smaz.Compress(nil, []byte(s))
-  decompressed, err := smaz.Decompress(compressed)
+  compressed := smaz.Encode(nil, []byte(s))
+  decompressed, err := smaz.Decode(compressed)
   if err != nil {
     fmt.Printf("decompressed: %s\n", string(decompressed))
     ...
 }
 ```
 
-Also see the [API documentation](http://godoc.org/github.com/kjk/smaz).
+Full [API documentation](http://godoc.org/github.com/kjk/smaz).
 
 ## Notes
 
@@ -43,7 +43,7 @@ library should be decompressible by `smaz.Decompress`.
 [Go port](https://github.com/cespare/go-smaz).
 
 [Krzysztof Kowalczyk](http://blog.kowalczyk.info) improved speed of
-decompression (2x faster) and compression.
+decompression (2x faster) and compression (1.3x).
 
 ## Contributors
 

@@ -1,4 +1,4 @@
-// Package smaz is an implementation of the smaz library
+// Package smaz is a pure Go implementation of the smaz algorithm
 // (https://github.com/antirez/smaz) for compressing small strings.
 package smaz
 
@@ -43,32 +43,35 @@ func init() {
 }
 
 func next(d []byte, n int) ([]byte, []byte) {
-	if n >= len(d) {
+	if len(d) < n {
 		return d, nil
 	}
 	return d[:n], d[n:]
 }
 
-func flushVerb(d, verbBuf []byte) ([]byte, []byte) {
-	var chunk []byte
+func flushVerb(dst, verbBuf []byte) ([]byte, []byte) {
 	// We can write a max of 255 continuous verbatim characters, because the
 	// length of the continous verbatim section is represented by a single byte.
+	var chunk []byte
 	for len(verbBuf) > 0 {
 		chunk, verbBuf = next(verbBuf, 255)
 		if len(chunk) == 1 {
 			// 254 is code for a single verbatim byte
-			d = append(d, byte(254))
+			dst = append(dst, byte(254))
 		} else {
 			// 255 is code for a verbatim string. It is followed by a byte
 			// containing the length of the string.
-			d = append(d, byte(255))
-			d = append(d, byte(len(chunk)))
+			dst = append(dst, byte(255))
+			dst = append(dst, byte(len(chunk)))
 		}
-		d = append(d, chunk...)
+		dst = append(dst, chunk...)
 	}
-	return d, verbBuf[0:0]
+	return dst, verbBuf[:0]
 }
 
+// Encode returns the encoded form of src. The returned slice may be a sub-slice
+// of dst if dst was large enough to hold the entire encoded block. Otherwise,
+// a newly allocated slice will be returned. It is valid to pass a nil dst.
 func Encode(dst, src []byte) []byte {
 	dst = dst[:0]
 	var verbBuf []byte
@@ -103,28 +106,32 @@ func Encode(dst, src []byte) []byte {
 	return dst
 }
 
-// ErrDecompression is returned when decompressing invalid smaz-encoded data.
-var ErrDecompression = errors.New("Invalid or corrupted compressed data.")
+// ErrCorrupt reports that the input is invalid.
+var ErrCorrupt = errors.New("smaz: corrupt input")
 
+// Decode returns the decoded form of src. The returned slice may be a sub-slice
+// of dst if dst was large enough to hold the entire decoded block. Otherwise,
+// a newly allocated slice will be returned. It is valid to pass a nil dst.
 func Decode(dst, src []byte) ([]byte, error) {
-	dst = dst[:0]
-	//dst := make([]byte, 0, len(src)) // Estimate initial size
+	if cap(dst) < len(src) {
+		dst = make([]byte, 0, len(src))
+	}
 	for len(src) > 0 {
 		n := int(src[0])
 		switch n {
 		case 254: // Verbatim byte
 			if len(src) < 2 {
-				return nil, ErrDecompression
+				return nil, ErrCorrupt
 			}
 			dst = append(dst, src[1])
 			src = src[2:]
 		case 255: // Verbatim string
 			if len(src) < 2 {
-				return nil, ErrDecompression
+				return nil, ErrCorrupt
 			}
 			n = int(src[1])
 			if len(src) < n+2 {
-				return nil, ErrDecompression
+				return nil, ErrCorrupt
 			}
 			dst = append(dst, src[2:n+2]...)
 			src = src[n+2:]
