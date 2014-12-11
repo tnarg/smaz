@@ -49,7 +49,7 @@ func next(d []byte, n int) ([]byte, []byte) {
 	return d[:n], d[n:]
 }
 
-func flushVerb(dst, verbBuf []byte) ([]byte, []byte) {
+func flushBuf(dst, verbBuf []byte) ([]byte, []byte) {
 	// We can write a max of 255 continuous verbatim characters, because the
 	// length of the continous verbatim section is represented by a single byte.
 	var chunk []byte
@@ -74,7 +74,8 @@ func flushVerb(dst, verbBuf []byte) ([]byte, []byte) {
 // a newly allocated slice will be returned. It is valid to pass a nil dst.
 func Encode(dst, src []byte) []byte {
 	dst = dst[:0]
-	var verbBuf []byte
+	var arr [64]byte
+	buf := arr[:0]
 	root := codeTrie.Root()
 
 	for len(src) > 0 {
@@ -95,14 +96,14 @@ func Encode(dst, src []byte) []byte {
 
 		if prefixLen > 0 {
 			src = src[prefixLen:]
-			dst, verbBuf = flushVerb(dst, verbBuf)
+			dst, buf = flushBuf(dst, buf)
 			dst = append(dst, byte(code))
 		} else {
-			verbBuf = append(verbBuf, src[0])
+			buf = append(buf, src[0])
 			src = src[1:]
 		}
 	}
-	dst, _ = flushVerb(dst, verbBuf)
+	dst, _ = flushBuf(dst, buf)
 	return dst
 }
 
