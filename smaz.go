@@ -49,24 +49,24 @@ func next(d []byte, n int) ([]byte, []byte) {
 	return d[:n], d[n:]
 }
 
-func flushBuf(dst, verbBuf []byte) ([]byte, []byte) {
+func appendSrc(dst, src []byte) []byte {
 	// We can write a max of 255 continuous verbatim characters, because the
 	// length of the continous verbatim section is represented by a single byte.
-	var chunk []byte
-	for len(verbBuf) > 0 {
-		chunk, verbBuf = next(verbBuf, 255)
+	for len(src) > 0 {
+		chunk, src = next(src, 255)
 		if len(chunk) == 1 {
 			// 254 is code for a single verbatim byte
 			dst = append(dst, byte(254))
+			dst = append(dst, chunk[0])
 		} else {
 			// 255 is code for a verbatim string. It is followed by a byte
 			// containing the length of the string.
 			dst = append(dst, byte(255))
 			dst = append(dst, byte(len(chunk)))
+			dst = append(dst, chunk...)
 		}
-		dst = append(dst, chunk...)
 	}
-	return dst, verbBuf[:0]
+	return dst
 }
 
 // Encode returns the encoded form of src. The returned slice may be a sub-slice
@@ -74,15 +74,15 @@ func flushBuf(dst, verbBuf []byte) ([]byte, []byte) {
 // a newly allocated slice will be returned. It is valid to pass a nil dst.
 func Encode(dst, src []byte) []byte {
 	dst = dst[:0]
-	var arr [64]byte
-	buf := arr[:0]
 	root := codeTrie.Root()
-
-	for len(src) > 0 {
-		prefixLen := 0
-		code := 0
+	currPos := 0
+	nLeft := len(src)
+	tmp := src
+	code := 0
+	prefixLen := 0
+	for currPos < nLeft {
 		node := root
-		for i, c := range src {
+		for i, c := range tmp {
 			next := node.Walk(c)
 			if next == nil {
 				break
@@ -93,17 +93,20 @@ func Encode(dst, src []byte) []byte {
 				code = node.Val()
 			}
 		}
-
-		if prefixLen > 0 {
-			src = src[prefixLen:]
-			dst, buf = flushBuf(dst, buf)
-			dst = append(dst, byte(code))
-		} else {
-			buf = append(buf, src[0])
-			src = src[1:]
+		if prefixLen == 0 {
+			currPos++
+			tmp = tmp[1:]
+			continue
 		}
+		dst = appendSrc(dst, src[:currPos])
+		dst = append(dst, byte(code))
+		src = src[currPos+prefixLen:]
+		currPos = 0
+		nLeft = len(src)
+		tmp = src
+		prefixLen = 0
 	}
-	dst, _ = flushBuf(dst, buf)
+	dst = appendSrc(dst, src)
 	return dst
 }
 
