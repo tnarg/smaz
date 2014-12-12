@@ -71,23 +71,23 @@ func appendSrc(dst, src []byte) []byte {
 // a newly allocated slice will be returned. It is valid to pass a nil dst.
 func Encode(dst, src []byte) []byte {
 	dst = dst[:0]
-	root := codeTrie.Root()
+	t := codeTrie
 	currPos := 0
 	nLeft := len(src)
 	tmp := src
 	code := 0
 	prefixLen := 0
 	for currPos < nLeft {
-		node := root
+		nodeId := trie.RootNode
 		for i, c := range tmp {
-			next := node.Walk(c)
-			if next == nil {
+			nextNodeId := t.Walk(nodeId, c)
+			if nextNodeId == trie.NilNode {
 				break
 			}
-			node = next
-			if node.Terminal() {
+			nodeId = nextNodeId
+			if t.Terminal(nodeId) {
 				prefixLen = i + 1
-				code = node.Val()
+				code = t.Val(nodeId)
 			}
 		}
 		if prefixLen == 0 {
