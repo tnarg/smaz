@@ -43,7 +43,7 @@ func init() {
 }
 func LoadCustomTable(table []string) {
 	codeTrie = trie.New()
-	var codes = make([][]byte, len(table))
+	codes = make([][]byte, len(table))
 	for i, code := range table{
 		codes[i] = []byte(code)
 		codeTrie.Put([]byte(code), i)
