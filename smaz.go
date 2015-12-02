@@ -41,6 +41,14 @@ func init() {
 		codeTrie.Put([]byte(code), i)
 	}
 }
+func LoadCustomTable(table []string) {
+	codeTrie = trie.New()
+	codes = make([][]byte, len(table))
+	for i, code := range table{
+		codes[i] = []byte(code)
+		codeTrie.Put([]byte(code), i)
+	}
+}
 
 func appendSrc(dst, src []byte) []byte {
 	// We can write a max of 255 continuous verbatim characters, because the

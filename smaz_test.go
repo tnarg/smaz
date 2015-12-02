@@ -1,10 +1,12 @@
-package smaz
+package smaz_test
 
 import (
 	"bufio"
 	"bytes"
 	"os"
 	"testing"
+	"./"
+	sc "./"
 )
 
 var antirezTestStrings = []string{"",
@@ -24,6 +26,7 @@ var antirezTestStrings = []string{"",
 	"http://google.com",
 	"http://programming.reddit.com",
 	"http://github.com/antirez/smaz/tree/master",
+	"https://github.com/TheCoolKids",
 	"/media/hdb1/music/Alben/The Bla",
 }
 
@@ -48,8 +51,90 @@ func TestCorrectness(t *testing.T) {
 	inputs = append(inputs, allZeroes)
 
 	for _, input := range inputs {
-		compressed := Encode(nil, input)
-		decompressed, err := Decode(nil, compressed)
+		compressed := smaz.Encode(nil, input)
+		decompressed, err := smaz.Decode(nil, compressed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(input, decompressed) {
+			t.Fatalf("want %q after decompression; got %q\n", input, decompressed)
+		}
+
+		if len(input) > 1 && len(input) < 50 {
+			compressionLevel := 100 - ((100.0 * len(compressed)) / len(input))
+			if compressionLevel < 0 {
+				t.Logf("%q enlarged by %d%%\n", input, -compressionLevel)
+			} else {
+				t.Logf("%q compressed by %d%%\n", input, compressionLevel)
+			}
+		}
+	}
+}
+
+func TestCustomTable(t *testing.T) {
+	table := []string{
+		"This is a small string",
+		"foobar",
+		"the end",
+		"not-a-g00d-Exampl333",
+		"http://google.com",
+		"http://programming.reddit.com",
+	}
+	sc.LoadCustomTable(table)
+
+	inputs := make([][]byte, 0)
+	for _, s := range table {
+		inputs = append(inputs, []byte(s))
+	}
+
+	for _, input := range inputs {
+		compressed := sc.Encode(nil, input)
+		decompressed, err := sc.Decode(nil, compressed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(input, decompressed) {
+			t.Fatalf("want %q after decompression; got %q\n", input, decompressed)
+		}
+		if len(compressed) > 1 {
+			t.Fatalf("want len(encode(%q)) == 1 after compression; got %d\n", input, len(compressed))
+		}
+
+		if len(input) > 1 && len(input) < 50 {
+			compressionLevel := 100 - ((100.0 * len(compressed)) / len(input))
+			if compressionLevel < 0 {
+				t.Logf("%q enlarged by %d%%\n", input, -compressionLevel)
+			} else {
+				t.Logf("%q compressed by %d%%\n", input, compressionLevel)
+			}
+		}
+	}
+}
+
+func TestCorrectnessWithCustomTable(t *testing.T) {
+	// Set up our slice of test strings.
+	inputs := make([][]byte, 0)
+	for _, s := range antirezTestStrings {
+		inputs = append(inputs, []byte(s))
+	}
+	// An array with every possible byte value in it.
+	allBytes := make([]byte, 256)
+	for i := 0; i < 256; i++ {
+		allBytes[i] = byte(i)
+	}
+	inputs = append(inputs, allBytes)
+	// A long array of all 0s (the longest continuous string that can be represented is 256; any longer than
+	// this and the compressor will need to split it into chunks)
+	allZeroes := make([]byte, 300)
+	for i := 0; i < 300; i++ {
+		allZeroes[i] = byte(0)
+	}
+	inputs = append(inputs, allZeroes)
+
+	sc.LoadCustomTable([]string{"http://", "is", ".com"})
+	for _, input := range inputs {
+		compressed := sc.Encode(nil, input)
+		decompressed, err := sc.Decode(nil, compressed)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,7 +178,7 @@ func BenchmarkCompression(b *testing.B) {
 	var dst []byte
 	for i := 0; i < b.N; i++ {
 		for _, input := range inputs {
-			dst = Encode(dst, input)
+			dst = smaz.Encode(dst, input)
 		}
 	}
 }
@@ -104,7 +189,7 @@ func BenchmarkDecompression(b *testing.B) {
 	compressedStrings := make([][]byte, len(inputs))
 	var n int64
 	for i, input := range inputs {
-		compressed := Encode(nil, input)
+		compressed := smaz.Encode(nil, input)
 		compressedStrings[i] = compressed
 		n += int64(len(compressed))
 	}
@@ -114,7 +199,7 @@ func BenchmarkDecompression(b *testing.B) {
 	var err error
 	for i := 0; i < b.N; i++ {
 		for _, compressed := range compressedStrings {
-			dst, err = Decode(dst, compressed)
+			dst, err = smaz.Decode(dst, compressed)
 			if err != nil {
 				b.Fatalf("Decompress failed with %s", err)
 			}
