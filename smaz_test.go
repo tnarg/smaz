@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"os"
 	"testing"
-	"./"
-	sc "./"
+
+	"github.com/tnarg/smaz"
 )
 
 var antirezTestStrings = []string{"",
@@ -51,8 +51,8 @@ func TestCorrectness(t *testing.T) {
 	inputs = append(inputs, allZeroes)
 
 	for _, input := range inputs {
-		compressed := smaz.Encode(nil, input)
-		decompressed, err := smaz.Decode(nil, compressed)
+		compressed := smaz.DefaultCodec.Encode(nil, input)
+		decompressed, err := smaz.DefaultCodec.Decode(nil, compressed)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -80,7 +80,7 @@ func TestCustomTable(t *testing.T) {
 		"http://google.com",
 		"http://programming.reddit.com",
 	}
-	sc.LoadCustomTable(table)
+	cdc := smaz.NewCodec(table)
 
 	inputs := make([][]byte, 0)
 	for _, s := range table {
@@ -88,8 +88,8 @@ func TestCustomTable(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		compressed := sc.Encode(nil, input)
-		decompressed, err := sc.Decode(nil, compressed)
+		compressed := cdc.Encode(nil, input)
+		decompressed, err := cdc.Decode(nil, compressed)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -131,10 +131,10 @@ func TestCorrectnessWithCustomTable(t *testing.T) {
 	}
 	inputs = append(inputs, allZeroes)
 
-	sc.LoadCustomTable([]string{"http://", "is", ".com"})
+	cdc := smaz.NewCodec([]string{"http://", "is", ".com"})
 	for _, input := range inputs {
-		compressed := sc.Encode(nil, input)
-		decompressed, err := sc.Decode(nil, compressed)
+		compressed := cdc.Encode(nil, input)
+		decompressed, err := cdc.Decode(nil, compressed)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,7 +178,7 @@ func BenchmarkCompression(b *testing.B) {
 	var dst []byte
 	for i := 0; i < b.N; i++ {
 		for _, input := range inputs {
-			dst = smaz.Encode(dst, input)
+			dst = smaz.DefaultCodec.Encode(dst, input)
 		}
 	}
 }
@@ -189,7 +189,7 @@ func BenchmarkDecompression(b *testing.B) {
 	compressedStrings := make([][]byte, len(inputs))
 	var n int64
 	for i, input := range inputs {
-		compressed := smaz.Encode(nil, input)
+		compressed := smaz.DefaultCodec.Encode(nil, input)
 		compressedStrings[i] = compressed
 		n += int64(len(compressed))
 	}
@@ -199,7 +199,7 @@ func BenchmarkDecompression(b *testing.B) {
 	var err error
 	for i := 0; i < b.N; i++ {
 		for _, compressed := range compressedStrings {
-			dst, err = smaz.Decode(dst, compressed)
+			dst, err = smaz.DefaultCodec.Decode(dst, compressed)
 			if err != nil {
 				b.Fatalf("Decompress failed with %s", err)
 			}
